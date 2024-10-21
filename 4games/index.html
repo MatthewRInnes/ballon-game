@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pop the Balloon Game</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* General body styling */
+        body {
+            font-family: 'Comic Sans MS', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #f0f0f0);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        /* Main game container */
+        #game-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 100%;
+            position: relative;
+            background-color: #FFFAF0;
+            overflow: hidden;
+            border: 5px solid #FFA500;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Instructions, score, and message styles */
+        .instructions, #score, #message {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff4500;
+            text-shadow: 2px 2px 4px #000;
+            margin-top: 10px;
+        }
+
+        #score {
+            margin-bottom: 20px;
+        }
+
+        /* Balloon styling */
+        .balloon {
+            width: 60px;
+            height: 80px;
+            background-color: red;
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Success message styling */
+        #message {
+            display: none;
+            font-size: 36px;
+            color: green;
+        }
+
+        /* Restart button styling */
+        #restart-btn {
+            display: none;
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #ff4500;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Responsive balloon sizing */
+        @media only screen and (max-width: 768px) {
+            .balloon {
+                width: 50px;
+                height: 70px;
+                font-size: 20px;
+            }
+        }
+
+        @media only screen and (max-width: 480px) {
+            .balloon {
+                width: 40px;
+                height: 60px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="score">Score: 0</div>
+    <div class="instructions">Pop the balloons before they float away!</div>
+    <div id="message"></div>
+    <button id="restart-btn" onclick="restartGame()">Restart Game</button>
+</div>
+
+<script>
+    let score = 0;
+    let level = 1;
+    let balloonSpeed = 6000; // Initial balloon speed (slower)
+    let gameInterval;
+
+    // Function to update the score display
+    function updateScore() {
+        $('#score').text('Score: ' + score);
+    }
+
+    // Function to show messages for popping balloons
+    function showPopMessage() {
+        let messages = ['Well done!', 'You got it right!', 'Great job!'];
+        let randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        $('#message').text(randomMessage).fadeIn().delay(1000).fadeOut();
+    }
+
+    // Function to create a new balloon
+    function createBalloon() {
+        let colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        let randomColor = colors[Math.floor(Math.random() * colors.length)];
+        let balloon = $('<div class="balloon">🎈</div>');
+        balloon.css('background-color', randomColor);
+
+        let leftPosition = Math.random() * ($('#game-container').width() - 60);
+        balloon.css({ left: leftPosition + 'px', bottom: '-100px' });
+        $('#game-container').append(balloon);
+
+        // Animate the balloon to float upwards
+        balloon.animate({ bottom: '100%' }, balloonSpeed, function() {
+            $(this).remove(); // Remove balloon when it floats away
+        });
+
+        // Balloon pop event with sound, color change, and score update
+        balloon.on('click touchstart', function() {
+            let popSound = new Audio('pop-sound.mp3'); // Replace with actual sound file
+            popSound.play();
+            $(this).css('background-color', 'grey').stop().fadeOut(200, function() {
+                $(this).remove();
+            });
+            score++; // Increase score
+            updateScore(); // Update score display
+            showPopMessage(); // Show random positive message
+            checkLevel(); // Check for level progression
+        });
+    }
+
+    // Function to check for level progression
+    function checkLevel() {
+        if (score === 10 && level === 1) {
+            level = 2;
+            balloonSpeed = 4000; // Increase balloon speed in Level 2
+            showMessage("Level 2! Balloons are getting faster!");
+        } else if (score === 20 && level === 2) {
+            showMessage("You are a winner!");
+            setTimeout(askContinue, 3000); // Prompt to continue or end game
+        }
+    }
+
+    // Function to show general game messages
+    function showMessage(text) {
+        $('#message').text(text).fadeIn().delay(2000).fadeOut();
+    }
+
+    // Ask player if they want to continue playing or restart
+    function askContinue() {
+        let continuePlaying = confirm("You are a winner! Do you want to continue playing?");
+        if (continuePlaying) {
+            score = 20; // Continue with the current score
+            updateScore();
+        } else {
+            alert("End of game. Well done!");
+            $('#restart-btn').show(); // Show the restart button
+            clearInterval(gameInterval); // Stop balloon creation
+        }
+    }
+
+    // Function to restart the game
+    function restartGame() {
+        score = 0;
+        level = 1;
+        balloonSpeed = 6000; // Reset speed
+        $('#restart-btn').hide(); // Hide the restart button
+        updateScore();
+        gameInterval = setInterval(createBalloon, 1500); // Start creating balloons again
+    }
+
+    // Create a balloon every 1.5 seconds
+    gameInterval = setInterval(createBalloon, 1500);
+
+    // Initialize score display
+    updateScore();
+</script>
+
+</body>
+</html>
